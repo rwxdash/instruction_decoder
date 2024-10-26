@@ -1,3 +1,4 @@
+use std::env;
 use std::fmt;
 use std::fs;
 
@@ -92,18 +93,29 @@ fn which_op(opcode: u8) -> Opcode {
     }
 }
 
+/*
+ * 137  -> 10001001  -> 100010|d|w  -> 100010 (mov) | d = 0     | w = 1
+ * 217  -> 11011001  -> mod|reg|r/m -> mod = 11     | reg = 011 | r/m = 001
+ */
 fn main() {
-    println!("; Read from the binary\n");
-    println!("bits 16\n");
+    let args: Vec<String> = env::args().collect();
 
-    /*
-     * 137  -> 10001001  -> 100010|d|w  -> 100010 (mov) | d = 0     | w = 1
-     * 217  -> 11011001  -> mod|reg|r/m -> mod = 11     | reg = 011 | r/m = 001
-     */
-    let file_path: &str =
-        "/home/oz/workspace/rust/instruction_decoder/vendor/listing_0038_many_register_mov";
+    if args.len() != 2 {
+        println!("Expected 1 argument, found {}", args.len() - 1);
+        return;
+    }
+
+    let file_path: &str = &args[1].as_str();
+    println!("; Read from the binary\n");
+
     let contents: Vec<u8> = fs::read(&file_path).expect("Error reading file");
-    // println!("{:b} {:b}", &contents[0], &contents[1]);
+    let processed: String = process(contents);
+
+    println!("{}", processed);
+}
+
+fn process(contents: Vec<u8>) -> String {
+    let mut output: String = String::from("bits 16\n\n");
 
     for instruction in contents.chunks(2) {
         let opcode_field = (instruction[0] >> 2) & 0b111111;
@@ -117,12 +129,58 @@ fn main() {
         let reg = which_reg(word_byte_field, register_field);
         let rm = which_reg(word_byte_field, rm_field);
 
-        let output = match direction_field {
-            1 => format!("{} {}, {}", op, reg, rm),
-            0 => format!("{} {}, {}", op, rm, reg),
-            _ => format!("; invalid instruction"),
+        let line: String = match direction_field {
+            1 => format!("{} {}, {}\n", op, reg, rm),
+            0 => format!("{} {}, {}\n", op, rm, reg),
+            _ => format!("; invalid instruction\n"),
         };
 
-        println!("{}", output);
+        output.push_str(line.as_str());
+    }
+
+    output
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn normalize_asm(content: &str) -> String {
+        content
+            .split("\n")
+            .filter(|line| !line.starts_with(";"))
+            .filter(|line| !line.chars().all(|c| c.is_whitespace()))
+            .collect::<Vec<&str>>()
+            .join("\n")
+    }
+
+    fn compare(asm_file: &str, bin_file: &str) {
+        let original_asm_content: String =
+            fs::read_to_string(asm_file).expect("Error reading file");
+        let original_asm_content_normalized: String = normalize_asm(&original_asm_content);
+
+        let bin_to_asm_content: String = process(fs::read(bin_file).expect("Error reading file"));
+        let bin_to_asm_content_normalized: String = normalize_asm(&bin_to_asm_content);
+
+        assert_eq!(
+            original_asm_content_normalized,
+            bin_to_asm_content_normalized
+        );
+    }
+
+    #[test]
+    fn listing_0037_single_register_mov() {
+        const ASM_FILE_PATH: &str = "./vendor/listing_0037_single_register_mov.asm";
+        const BIN_FILE_PATH: &str = "./vendor/listing_0037_single_register_mov";
+
+        compare(ASM_FILE_PATH, BIN_FILE_PATH)
+    }
+
+    #[test]
+    fn listing_0038_single_register_mov() {
+        const ASM_FILE_PATH: &str = "./vendor/listing_0038_many_register_mov.asm";
+        const BIN_FILE_PATH: &str = "./vendor/listing_0038_many_register_mov";
+
+        compare(ASM_FILE_PATH, BIN_FILE_PATH)
     }
 }
