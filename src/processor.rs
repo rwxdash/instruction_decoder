@@ -40,31 +40,31 @@ enum EffectiveAddressCalculation {
 
 impl fmt::Display for EffectiveAddressCalculation {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let value: String = match self {
-            EffectiveAddressCalculation::AL => Register::AL.to_string(),
-            EffectiveAddressCalculation::CL => Register::CL.to_string(),
-            EffectiveAddressCalculation::DL => Register::DL.to_string(),
-            EffectiveAddressCalculation::BL => Register::BL.to_string(),
-            EffectiveAddressCalculation::AH => Register::AH.to_string(),
-            EffectiveAddressCalculation::CH => Register::CH.to_string(),
-            EffectiveAddressCalculation::DH => Register::DH.to_string(),
-            EffectiveAddressCalculation::BH => Register::BH.to_string(),
-            EffectiveAddressCalculation::AX => Register::AX.to_string(),
-            EffectiveAddressCalculation::CX => Register::CX.to_string(),
-            EffectiveAddressCalculation::DX => Register::DX.to_string(),
-            EffectiveAddressCalculation::BX => Register::BX.to_string(),
-            EffectiveAddressCalculation::SP => Register::SP.to_string(),
-            EffectiveAddressCalculation::BP => Register::BP.to_string(),
-            EffectiveAddressCalculation::SI => Register::SI.to_string(),
-            EffectiveAddressCalculation::DI => Register::DI.to_string(),
-            EffectiveAddressCalculation::BxSi => format!("bx + si"),
-            EffectiveAddressCalculation::BxDi => format!("bx + di"),
-            EffectiveAddressCalculation::BpSi => format!("bp + si"),
-            EffectiveAddressCalculation::BpDi => format!("bp + di"),
-            EffectiveAddressCalculation::Si => format!("si"),
-            EffectiveAddressCalculation::Di => format!("di"),
-            EffectiveAddressCalculation::Bp => format!("bp"),
-            EffectiveAddressCalculation::Bx => format!("bx"),
+        let value = match self {
+            EffectiveAddressCalculation::AL => "al",
+            EffectiveAddressCalculation::CL => "cl",
+            EffectiveAddressCalculation::DL => "dl",
+            EffectiveAddressCalculation::BL => "bl",
+            EffectiveAddressCalculation::AH => "ah",
+            EffectiveAddressCalculation::CH => "ch",
+            EffectiveAddressCalculation::DH => "dh",
+            EffectiveAddressCalculation::BH => "bh",
+            EffectiveAddressCalculation::AX => "ax",
+            EffectiveAddressCalculation::CX => "cx",
+            EffectiveAddressCalculation::DX => "dx",
+            EffectiveAddressCalculation::BX => "bx",
+            EffectiveAddressCalculation::SP => "sp",
+            EffectiveAddressCalculation::BP => "bp",
+            EffectiveAddressCalculation::SI => "si",
+            EffectiveAddressCalculation::DI => "di",
+            EffectiveAddressCalculation::BxSi => "bx + si",
+            EffectiveAddressCalculation::BxDi => "bx + di",
+            EffectiveAddressCalculation::BpSi => "bp + si",
+            EffectiveAddressCalculation::BpDi => "bp + di",
+            EffectiveAddressCalculation::Si => "si",
+            EffectiveAddressCalculation::Di => "di",
+            EffectiveAddressCalculation::Bp => "bp",
+            EffectiveAddressCalculation::Bx => "bx",
         };
 
         write!(f, "{}", value)
@@ -79,50 +79,6 @@ impl fmt::Display for Op {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let value = match self {
             Op::Mov => "mov",
-        };
-
-        write!(f, "{}", value)
-    }
-}
-
-enum Register {
-    AL, // 000
-    CL, // 001
-    DL, // 010
-    BL, // 011
-    AH, // 100
-    CH, // 101
-    DH, // 110
-    BH, // 111
-    AX, // 000
-    CX, // 001
-    DX, // 010
-    BX, // 011
-    SP, // 100
-    BP, // 101
-    SI, // 110
-    DI, // 111
-}
-
-impl fmt::Display for Register {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let value = match self {
-            Register::AL => "al", // 000
-            Register::CL => "cl", // 001
-            Register::DL => "dl", // 010
-            Register::BL => "bl", // 011
-            Register::AH => "ah", // 100
-            Register::CH => "ch", // 101
-            Register::DH => "dh", // 110
-            Register::BH => "bh", // 111
-            Register::AX => "ax", // 000
-            Register::CX => "cx", // 001
-            Register::DX => "dx", // 010
-            Register::BX => "bx", // 011
-            Register::SP => "sp", // 100
-            Register::BP => "bp", // 101
-            Register::SI => "si", // 110
-            Register::DI => "di", // 111
         };
 
         write!(f, "{}", value)
