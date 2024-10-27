@@ -20,10 +20,13 @@ fn main() {
     println!("; Read from the binary\n");
 
     let contents: Vec<u8> = fs::read(&file_path).expect("Error reading file");
-    for byte in &contents {
-        print!("{:08b}\t", byte)
+    for bytes in contents.chunks(8) {
+        for byte in bytes {
+            print!("{:08b} ", byte);
+        }
+        print!("\n")
     }
-    println!("; raw data");
+    println!("; raw data\n===\n");
 
     let processed: String = process_bin(&contents);
     println!("{}", processed);

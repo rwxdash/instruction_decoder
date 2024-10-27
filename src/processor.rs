@@ -269,7 +269,6 @@ pub(crate) fn process_bin(contents: &Vec<u8>) -> String {
                             let displacement_low = *contents_iterator.next().unwrap();
                             let displacement = i8::from_le_bytes([displacement_low]);
 
-                            println!("{}", displacement);
                             if let Some(rm_address_calculation) = rm_address_calculation {
                                 if displacement.is_negative() {
                                     format!("[{} - {}]", rm_address_calculation, -displacement)
