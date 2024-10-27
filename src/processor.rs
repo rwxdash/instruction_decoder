@@ -106,9 +106,9 @@ fn which_address(
 ) -> Option<EffectiveAddressCalculation> {
     let address: Option<EffectiveAddressCalculation> =
         match (mode_field, word_byte_field, rm_field, register_only) {
-            // It can either be in register mode which makes mode_field obsolete,
-            // Or not in a register mode, in that case we have to check if mode field is 11
-            // in order to calculate accurately.
+            // In Instruction::ImmediateToRegister, mode_field is not present.
+            // So, Register (not R/Ms) arms should support the pattern where
+            // mode_field is unavailable (ie. not 0b11) but expected results is a register.
             (_, 0b0, 0b000, true) | (0b11, 0b0, 0b000, _) => Some(EffectiveAddressCalculation::AL),
             (_, 0b0, 0b001, true) | (0b11, 0b0, 0b001, _) => Some(EffectiveAddressCalculation::CL),
             (_, 0b0, 0b010, true) | (0b11, 0b0, 0b010, _) => Some(EffectiveAddressCalculation::DL),
