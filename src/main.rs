@@ -20,8 +20,12 @@ fn main() {
     println!("; Read from the binary\n");
 
     let contents: Vec<u8> = fs::read(&file_path).expect("Error reading file");
-    let processed: String = process_bin(contents);
+    for byte in &contents {
+        print!("{:08b}\t", byte)
+    }
+    println!("; raw data");
 
+    let processed: String = process_bin(&contents);
     println!("{}", processed);
 }
 
@@ -44,7 +48,7 @@ mod tests {
         let original_asm_content_normalized: String = normalize_asm(&original_asm_content);
 
         let bin_to_asm_content: Vec<u8> = fs::read(bin_file).expect("Error reading file");
-        let bin_to_asm_content_processed: String = process_bin(bin_to_asm_content);
+        let bin_to_asm_content_processed: String = process_bin(&bin_to_asm_content);
         let bin_to_asm_content_normalized: String = normalize_asm(&bin_to_asm_content_processed);
 
         assert_eq!(
@@ -65,6 +69,22 @@ mod tests {
     fn listing_0038_single_register_mov() {
         const ASM_FILE_PATH: &str = "./vendor/listing_0038_many_register_mov.asm";
         const BIN_FILE_PATH: &str = "./vendor/listing_0038_many_register_mov";
+
+        compare(ASM_FILE_PATH, BIN_FILE_PATH)
+    }
+
+    #[test]
+    fn listing_0039_more_movs() {
+        const ASM_FILE_PATH: &str = "./vendor/listing_0039_more_movs.asm";
+        const BIN_FILE_PATH: &str = "./vendor/listing_0039_more_movs";
+
+        compare(ASM_FILE_PATH, BIN_FILE_PATH)
+    }
+
+    #[test]
+    fn listing_0040_more_movs() {
+        const ASM_FILE_PATH: &str = "./vendor/listing_0040_challenge_movs.asm";
+        const BIN_FILE_PATH: &str = "./vendor/listing_0040_challenge_movs";
 
         compare(ASM_FILE_PATH, BIN_FILE_PATH)
     }
