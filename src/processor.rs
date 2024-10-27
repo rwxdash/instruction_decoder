@@ -146,41 +146,48 @@ fn which_address(
     mode_field: &u8,
     word_byte_field: &u8,
     rm_field: &u8,
+    register_only: &bool,
 ) -> Option<EffectiveAddressCalculation> {
-    let address: Option<EffectiveAddressCalculation> = match (mode_field, word_byte_field, rm_field)
-    {
-        (0b11, 0b0, 0b000) => Some(EffectiveAddressCalculation::AL),
-        (0b11, 0b0, 0b001) => Some(EffectiveAddressCalculation::CL),
-        (0b11, 0b0, 0b010) => Some(EffectiveAddressCalculation::DL),
-        (0b11, 0b0, 0b011) => Some(EffectiveAddressCalculation::BL),
-        (0b11, 0b0, 0b100) => Some(EffectiveAddressCalculation::AH),
-        (0b11, 0b0, 0b101) => Some(EffectiveAddressCalculation::CH),
-        (0b11, 0b0, 0b110) => Some(EffectiveAddressCalculation::DH),
-        (0b11, 0b0, 0b111) => Some(EffectiveAddressCalculation::BH),
-        (0b11, 0b1, 0b000) => Some(EffectiveAddressCalculation::AX),
-        (0b11, 0b1, 0b001) => Some(EffectiveAddressCalculation::CX),
-        (0b11, 0b1, 0b010) => Some(EffectiveAddressCalculation::DX),
-        (0b11, 0b1, 0b011) => Some(EffectiveAddressCalculation::BX),
-        (0b11, 0b1, 0b100) => Some(EffectiveAddressCalculation::SP),
-        (0b11, 0b1, 0b101) => Some(EffectiveAddressCalculation::BP),
-        (0b11, 0b1, 0b110) => Some(EffectiveAddressCalculation::SI),
-        (0b11, 0b1, 0b111) => Some(EffectiveAddressCalculation::DI),
-        (_, _, 0b000) => Some(EffectiveAddressCalculation::BxSi),
-        (_, _, 0b001) => Some(EffectiveAddressCalculation::BxDi),
-        (_, _, 0b010) => Some(EffectiveAddressCalculation::BpSi),
-        (_, _, 0b011) => Some(EffectiveAddressCalculation::BpDi),
-        (_, _, 0b100) => Some(EffectiveAddressCalculation::Si),
-        (_, _, 0b101) => Some(EffectiveAddressCalculation::Di),
-        (_, _, 0b110) => {
-            if *mode_field == 0b00 {
-                None // Direct Address
-            } else {
-                Some(EffectiveAddressCalculation::Bp)
+    let address: Option<EffectiveAddressCalculation> =
+        match (mode_field, word_byte_field, rm_field, register_only) {
+            // It can either be in register mode which makes mode_field obsolete,
+            // Or not in a register mode, in that case we have to check if mode field is 11
+            // in order to calculate accurately.
+            (_, 0b0, 0b000, true) | (0b11, 0b0, 0b000, _) => Some(EffectiveAddressCalculation::AL),
+            (_, 0b0, 0b001, true) | (0b11, 0b0, 0b001, _) => Some(EffectiveAddressCalculation::CL),
+            (_, 0b0, 0b010, true) | (0b11, 0b0, 0b010, _) => Some(EffectiveAddressCalculation::DL),
+            (_, 0b0, 0b011, true) | (0b11, 0b0, 0b011, _) => Some(EffectiveAddressCalculation::BL),
+            (_, 0b0, 0b100, true) | (0b11, 0b0, 0b100, _) => Some(EffectiveAddressCalculation::AH),
+            (_, 0b0, 0b101, true) | (0b11, 0b0, 0b101, _) => Some(EffectiveAddressCalculation::CH),
+            (_, 0b0, 0b110, true) | (0b11, 0b0, 0b110, _) => Some(EffectiveAddressCalculation::DH),
+            (_, 0b0, 0b111, true) | (0b11, 0b0, 0b111, _) => Some(EffectiveAddressCalculation::BH),
+            (_, 0b1, 0b000, true) | (0b11, 0b1, 0b000, _) => Some(EffectiveAddressCalculation::AX),
+            (_, 0b1, 0b001, true) | (0b11, 0b1, 0b001, _) => Some(EffectiveAddressCalculation::CX),
+            (_, 0b1, 0b010, true) | (0b11, 0b1, 0b010, _) => Some(EffectiveAddressCalculation::DX),
+            (_, 0b1, 0b011, true) | (0b11, 0b1, 0b011, _) => Some(EffectiveAddressCalculation::BX),
+            (_, 0b1, 0b100, true) | (0b11, 0b1, 0b100, _) => Some(EffectiveAddressCalculation::SP),
+            (_, 0b1, 0b101, true) | (0b11, 0b1, 0b101, _) => Some(EffectiveAddressCalculation::BP),
+            (_, 0b1, 0b110, true) | (0b11, 0b1, 0b110, _) => Some(EffectiveAddressCalculation::SI),
+            (_, 0b1, 0b111, true) | (0b11, 0b1, 0b111, _) => Some(EffectiveAddressCalculation::DI),
+            (_, _, 0b000, false) => Some(EffectiveAddressCalculation::BxSi),
+            (_, _, 0b001, false) => Some(EffectiveAddressCalculation::BxDi),
+            (_, _, 0b010, false) => Some(EffectiveAddressCalculation::BpSi),
+            (_, _, 0b011, false) => Some(EffectiveAddressCalculation::BpDi),
+            (_, _, 0b100, false) => Some(EffectiveAddressCalculation::Si),
+            (_, _, 0b101, false) => Some(EffectiveAddressCalculation::Di),
+            (_, _, 0b110, false) => {
+                if *mode_field == 0b00 {
+                    None // Direct Address
+                } else {
+                    Some(EffectiveAddressCalculation::Bp)
+                }
             }
-        }
-        (_, _, 0b111) => Some(EffectiveAddressCalculation::Bx),
-        _ => panic!("Invalid rm_field: {:b}", rm_field),
-    };
+            (_, _, 0b111, false) => Some(EffectiveAddressCalculation::Bx),
+            _ => panic!(
+                "Invalid {:08b}, {:08b}, {:08b}, {:}",
+                mode_field, word_byte_field, rm_field, register_only
+            ),
+        };
 
     address
 }
@@ -223,21 +230,26 @@ pub(crate) fn process_bin(contents: &Vec<u8>) -> String {
                 // let _address = which_address(&mode_field, &word_byte_field, &rm_field);
                 let displacement = which_displacement(&rm_field, &mode_field);
 
-                let reg = which_address(&mode_field, &word_byte_field, &register_field)
+                let reg = which_address(&mode_field, &word_byte_field, &register_field, &true)
                     .unwrap()
                     .to_string();
 
                 let rm_address_calculation =
-                    which_address(&mode_field, &word_byte_field, &rm_field);
+                    which_address(&mode_field, &word_byte_field, &rm_field, &false);
 
                 if mode_field != 0b11 {
                     rm = match displacement {
                         1 => {
                             let displacement_low = *contents_iterator.next().unwrap();
-                            let displacement = u8::from_le_bytes([displacement_low]);
+                            let displacement = i8::from_le_bytes([displacement_low]);
 
+                            println!("{}", displacement);
                             if let Some(rm_address_calculation) = rm_address_calculation {
-                                format!("[{} + {}]", rm_address_calculation, displacement)
+                                if displacement.is_negative() {
+                                    format!("[{} - {}]", rm_address_calculation, -displacement)
+                                } else {
+                                    format!("[{} + {}]", rm_address_calculation, displacement)
+                                }
                             } else {
                                 format!("[{}]", displacement)
                             }
@@ -246,9 +258,17 @@ pub(crate) fn process_bin(contents: &Vec<u8>) -> String {
                             let displacement_low = *contents_iterator.next().unwrap();
                             let displacement_high = *contents_iterator.next().unwrap();
                             let displacement =
-                                u16::from_le_bytes([displacement_low, displacement_high]);
+                                i16::from_le_bytes([displacement_low, displacement_high]);
 
-                            format!("[{} + {}]", rm_address_calculation.unwrap(), displacement)
+                            if let Some(rm_address_calculation) = rm_address_calculation {
+                                if displacement.is_negative() {
+                                    format!("[{} - {}]", rm_address_calculation, -displacement)
+                                } else {
+                                    format!("[{} + {}]", rm_address_calculation, displacement)
+                                }
+                            } else {
+                                format!("[{}]", displacement)
+                            }
                         }
                         _ => format!("[{}]", rm_address_calculation.unwrap()),
                     };
