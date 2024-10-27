@@ -227,7 +227,6 @@ pub(crate) fn process_bin(contents: &Vec<u8>) -> String {
                 let mode_field = (next_instruction >> 6) & 0b11;
                 let register_field = (next_instruction >> 3) & 0b111;
                 let rm_field = next_instruction & 0b111;
-                // let _address = which_address(&mode_field, &word_byte_field, &rm_field);
                 let displacement = which_displacement(&rm_field, &mode_field);
 
                 let reg = which_address(&mode_field, &word_byte_field, &register_field, &true)
@@ -243,12 +242,13 @@ pub(crate) fn process_bin(contents: &Vec<u8>) -> String {
                             let displacement_low = *contents_iterator.next().unwrap();
                             let displacement = i8::from_le_bytes([displacement_low]);
 
-                            println!("{}", displacement);
                             if let Some(rm_address_calculation) = rm_address_calculation {
                                 if displacement.is_negative() {
                                     format!("[{} - {}]", rm_address_calculation, -displacement)
-                                } else {
+                                } else if displacement.is_positive() {
                                     format!("[{} + {}]", rm_address_calculation, displacement)
+                                } else {
+                                    format!("[{}]", rm_address_calculation)
                                 }
                             } else {
                                 format!("[{}]", displacement)
@@ -293,10 +293,120 @@ pub(crate) fn process_bin(contents: &Vec<u8>) -> String {
 
                 ()
             }
-            Instruction::ImmediateToRegisterMemory => todo!(),
-            Instruction::ImmediateToRegister => todo!(),
-            Instruction::MemoryToAccumulator => todo!(),
-            Instruction::AccumulatorToMemory => todo!(),
+            Instruction::ImmediateToRegisterMemory => {
+                let rm: String;
+
+                let next_instruction = *contents_iterator.next().unwrap();
+                let word_byte_field = instruction & 0b1;
+                let mode_field = (next_instruction >> 6) & 0b111;
+                let rm_field = next_instruction & 0b111;
+                let _register_field: u8 = 0b000;
+
+                let displacement = which_displacement(&rm_field, &mode_field);
+
+                let rm_address_calculation =
+                    which_address(&mode_field, &word_byte_field, &rm_field, &false);
+
+                if mode_field != 0b11 {
+                    rm = match displacement {
+                        1 => {
+                            let displacement_low = *contents_iterator.next().unwrap();
+                            let displacement = i8::from_le_bytes([displacement_low]);
+
+                            println!("{}", displacement);
+                            if let Some(rm_address_calculation) = rm_address_calculation {
+                                if displacement.is_negative() {
+                                    format!("[{} - {}]", rm_address_calculation, -displacement)
+                                } else if displacement.is_positive() {
+                                    format!("[{} + {}]", rm_address_calculation, displacement)
+                                } else {
+                                    format!("[{}]", rm_address_calculation)
+                                }
+                            } else {
+                                format!("[{}]", displacement)
+                            }
+                        }
+                        2 => {
+                            let displacement_low = *contents_iterator.next().unwrap();
+                            let displacement_high = *contents_iterator.next().unwrap();
+                            let displacement =
+                                i16::from_le_bytes([displacement_low, displacement_high]);
+
+                            if let Some(rm_address_calculation) = rm_address_calculation {
+                                if displacement.is_negative() {
+                                    format!("[{} - {}]", rm_address_calculation, -displacement)
+                                } else {
+                                    format!("[{} + {}]", rm_address_calculation, displacement)
+                                }
+                            } else {
+                                format!("[{}]", displacement)
+                            }
+                        }
+                        _ => format!("[{}]", rm_address_calculation.unwrap()),
+                    };
+                } else {
+                    rm = format!("{}", rm_address_calculation.unwrap());
+                }
+
+                if word_byte_field == 0b1 {
+                    let data_field_first = *contents_iterator.next().unwrap();
+                    let data_field_second = *contents_iterator.next().unwrap();
+                    let data = i16::from_le_bytes([data_field_first, data_field_second]);
+                    output.push_str(format!("{} {}, word {}\n", Op::Mov, rm, data).as_str())
+                } else {
+                    let data_field_first = *contents_iterator.next().unwrap();
+                    let data = i8::from_le_bytes([data_field_first]);
+                    output.push_str(format!("{} {}, byte {}\n", Op::Mov, rm, data).as_str())
+                }
+            }
+            Instruction::ImmediateToRegister => {
+                let word_byte_field = (instruction >> 3) & 0b1;
+                let register_field = instruction & 0b111;
+                if word_byte_field == 0b1 {
+                    let data_field_first = *contents_iterator.next().unwrap();
+                    let data_field_second = *contents_iterator.next().unwrap();
+                    let data = i16::from_le_bytes([data_field_first, data_field_second]);
+                    let reg = which_address(&0, &word_byte_field, &register_field, &true)
+                        .unwrap()
+                        .to_string();
+                    output.push_str(format!("{} {}, {}\n", Op::Mov, reg, data).as_str())
+                } else {
+                    let data_field_first = *contents_iterator.next().unwrap();
+                    let data = i8::from_le_bytes([data_field_first]);
+                    let reg = which_address(&0, &word_byte_field, &register_field, &true)
+                        .unwrap()
+                        .to_string();
+                    output.push_str(format!("{} {}, {}\n", Op::Mov, reg, data).as_str())
+                }
+            }
+            Instruction::MemoryToAccumulator => {
+                let data_field_first = *contents_iterator.next().unwrap();
+                let data_field_second = *contents_iterator.next().unwrap();
+                let data = i16::from_le_bytes([data_field_first, data_field_second]);
+                output.push_str(
+                    format!(
+                        "{} {}, [{}]\n",
+                        Op::Mov,
+                        EffectiveAddressCalculation::AX,
+                        data
+                    )
+                    .as_str(),
+                )
+            }
+            Instruction::AccumulatorToMemory => {
+                let data_field_first = *contents_iterator.next().unwrap();
+                let data_field_second = *contents_iterator.next().unwrap();
+                let data = i16::from_le_bytes([data_field_first, data_field_second]);
+                output.push_str(
+                    format!(
+                        "{} [{}], {}\n",
+                        Op::Mov,
+                        data,
+                        EffectiveAddressCalculation::AX
+                    )
+                    .as_str(),
+                )
+            }
             Instruction::RegisterMemoryToSegmentRegister => todo!(),
             Instruction::SegmentRegisterToRegisterMemory => todo!(),
             Instruction::Invalid => (), // panic!("Invalid instruction byte: {:b}", byte),
