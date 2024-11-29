@@ -168,4 +168,18 @@ mod tests {
 
         compare_bin(BIN_FILE_PATH)
     }
+
+    #[test]
+    fn bin_cmp_listing_0041_add_sub_cmp_jnz() {
+        const BIN_FILE_PATH: &str = "./vendor/listing_0041_add_sub_cmp_jnz";
+
+        compare_bin(BIN_FILE_PATH)
+    }
+
+    #[test]
+    fn bin_cmp_listing_0042_completionist_decode() {
+        const BIN_FILE_PATH: &str = "./vendor/listing_0042_completionist_decode";
+
+        compare_bin(BIN_FILE_PATH)
+    }
 }
