@@ -1,13 +1,31 @@
 use std::fmt;
 
 enum Instruction {
-    RegisterMemoryToRegister,
-    ImmediateToRegisterMemory,
-    ImmediateToRegister,
-    MemoryToAccumulator,
-    AccumulatorToMemory,
-    RegisterMemoryToSegmentRegister,
-    SegmentRegisterToRegisterMemory,
+    // MOV Instructions
+    MovRegisterMemoryToFromRegister,
+    MovImmediateToRegisterMemory,
+    MovImmediateToRegister,
+    MovMemoryToAccumulator,
+    MovAccumulatorToMemory,
+    MovRegisterMemoryToSegmentRegister,
+    MovSegmentRegisterToRegisterMemory,
+
+    // ADD Instructions
+    AddRegisterMemoryWithRegisterToEither,
+    AddImmediateToRegisterMemory,
+    AddImmediateToAccumulator,
+
+    // SUB Instructions
+    SubRegisterMemoryAndRegisterToEither,
+    SubImmediateFromRegisterMemory,
+    SubImmediateFromAccumulator,
+
+    // CMP Instructions
+    CmpRegisterMemoryAndRegister,
+    CmpImmediateWithRegisterMemory,
+    CmpImmediateWithAccumulator,
+
+    // _
     Invalid,
 }
 
@@ -73,28 +91,50 @@ impl fmt::Display for EffectiveAddressCalculation {
 
 enum Op {
     Mov,
+    Add,
+    Sub,
+    Cmp,
+    Invalid,
 }
 
 impl fmt::Display for Op {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let value = match self {
             Op::Mov => "mov",
+            Op::Add => "add",
+            Op::Sub => "sub",
+            Op::Cmp => "cmp",
+            Op::Invalid => "",
         };
 
         write!(f, "{}", value)
     }
 }
 
-fn which_instruction(byte: &u8) -> Instruction {
+fn which_instruction(byte: &u8) -> (Op, Instruction) {
     match byte {
-        0b10001000..=0b10001011 => Instruction::RegisterMemoryToRegister,
-        0b11000110..=0b11000111 => Instruction::ImmediateToRegisterMemory,
-        0b10110000..=0b10111111 => Instruction::ImmediateToRegister,
-        0b10100000..=0b10100001 => Instruction::MemoryToAccumulator,
-        0b10100010..=0b10100011 => Instruction::AccumulatorToMemory,
-        0b10001110 => Instruction::RegisterMemoryToSegmentRegister,
-        0b10001100 => Instruction::SegmentRegisterToRegisterMemory,
-        _ => Instruction::Invalid,
+        // MOV
+        0b10001000..=0b10001011 => (Op::Mov, Instruction::MovRegisterMemoryToFromRegister),
+        0b11000110..=0b11000111 => (Op::Mov, Instruction::MovImmediateToRegisterMemory),
+        0b10110000..=0b10111111 => (Op::Mov, Instruction::MovImmediateToRegister),
+        0b10100000..=0b10100001 => (Op::Mov, Instruction::MovMemoryToAccumulator),
+        0b10100010..=0b10100011 => (Op::Mov, Instruction::MovAccumulatorToMemory),
+        0b10001110 => (Op::Mov, Instruction::MovRegisterMemoryToSegmentRegister),
+        0b10001100 => (Op::Mov, Instruction::MovSegmentRegisterToRegisterMemory),
+
+        // ADD
+        0b00000000..=0b00000011 => (Op::Add, Instruction::AddRegisterMemoryWithRegisterToEither),
+        0b00000100..=0b00000101 => (Op::Add, Instruction::AddImmediateToAccumulator),
+
+        // SUB
+        0b00101000..=0b00101011 => (Op::Sub, Instruction::SubRegisterMemoryAndRegisterToEither),
+        0b00101100..=0b00101101 => (Op::Sub, Instruction::SubImmediateFromAccumulator),
+
+        // CMP
+        0b00111000..=0b00111011 => (Op::Cmp, Instruction::CmpRegisterMemoryAndRegister),
+        0b00111100..=0b00111101 => (Op::Cmp, Instruction::CmpImmediateWithAccumulator),
+
+        _ => (Op::Invalid, Instruction::Invalid),
     }
 }
 
@@ -171,10 +211,49 @@ pub(crate) fn process_bin(contents: &Vec<u8>) -> String {
     let mut contents_iterator = contents.iter();
     // for instruction in contents.chunks(2) {
     while let Some(instruction) = contents_iterator.next() {
-        let opcode_field: Instruction = which_instruction(instruction);
+        let (opcode, opcode_instruction, mode_field, rm_field): (
+            Op,
+            Instruction,
+            Option<u8>,
+            Option<u8>,
+        ) = match instruction {
+            0b10000000..=0b10000011 => {
+                let next_instruction = contents_iterator.next().unwrap();
+                let mode_field = (next_instruction >> 6) & 0b11;
+                let opcode_field = (next_instruction >> 3) & 0b111;
+                let rm_field = next_instruction & 0b111;
 
-        match opcode_field {
-            Instruction::RegisterMemoryToRegister => {
+                match opcode_field {
+                    0b000 => (
+                        Op::Add,
+                        Instruction::AddImmediateToRegisterMemory,
+                        Some(mode_field),
+                        Some(rm_field),
+                    ),
+                    0b101 => (
+                        Op::Sub,
+                        Instruction::SubImmediateFromRegisterMemory,
+                        Some(mode_field),
+                        Some(rm_field),
+                    ),
+                    0b111 => (
+                        Op::Cmp,
+                        Instruction::CmpImmediateWithRegisterMemory,
+                        Some(mode_field),
+                        Some(rm_field),
+                    ),
+                    _ => (Op::Invalid, Instruction::Invalid, None, None),
+                }
+            }
+            _ => {
+                let (opcode, opcode_instruction) = which_instruction(instruction);
+
+                (opcode, opcode_instruction, None, None)
+            }
+        };
+
+        match (opcode, opcode_instruction) {
+            (Op::Mov, Instruction::MovRegisterMemoryToFromRegister) => {
                 let rm: String;
 
                 let next_instruction = contents_iterator.next().unwrap();
@@ -249,7 +328,7 @@ pub(crate) fn process_bin(contents: &Vec<u8>) -> String {
 
                 ()
             }
-            Instruction::ImmediateToRegisterMemory => {
+            (Op::Mov, Instruction::MovImmediateToRegisterMemory) => {
                 let rm: String;
 
                 let next_instruction = *contents_iterator.next().unwrap();
@@ -314,7 +393,7 @@ pub(crate) fn process_bin(contents: &Vec<u8>) -> String {
                     output.push_str(format!("{} {}, byte {}\n", Op::Mov, rm, data).as_str())
                 }
             }
-            Instruction::ImmediateToRegister => {
+            (Op::Mov, Instruction::MovImmediateToRegister) => {
                 let word_byte_field = (instruction >> 3) & 0b1;
                 let register_field = instruction & 0b111;
                 if word_byte_field == 0b1 {
@@ -334,7 +413,7 @@ pub(crate) fn process_bin(contents: &Vec<u8>) -> String {
                     output.push_str(format!("{} {}, {}\n", Op::Mov, reg, data).as_str())
                 }
             }
-            Instruction::MemoryToAccumulator => {
+            (Op::Mov, Instruction::MovMemoryToAccumulator) => {
                 let data_field_first = *contents_iterator.next().unwrap();
                 let data_field_second = *contents_iterator.next().unwrap();
                 let data = i16::from_le_bytes([data_field_first, data_field_second]);
@@ -348,7 +427,7 @@ pub(crate) fn process_bin(contents: &Vec<u8>) -> String {
                     .as_str(),
                 )
             }
-            Instruction::AccumulatorToMemory => {
+            (Op::Mov, Instruction::MovAccumulatorToMemory) => {
                 let data_field_first = *contents_iterator.next().unwrap();
                 let data_field_second = *contents_iterator.next().unwrap();
                 let data = i16::from_le_bytes([data_field_first, data_field_second]);
@@ -362,9 +441,18 @@ pub(crate) fn process_bin(contents: &Vec<u8>) -> String {
                     .as_str(),
                 )
             }
-            Instruction::RegisterMemoryToSegmentRegister => todo!(),
-            Instruction::SegmentRegisterToRegisterMemory => todo!(),
-            Instruction::Invalid => (), // panic!("Invalid instruction byte: {:b}", byte),
+            (Op::Mov, Instruction::MovRegisterMemoryToSegmentRegister) => todo!(),
+            (Op::Mov, Instruction::MovSegmentRegisterToRegisterMemory) => todo!(),
+            (Op::Add, Instruction::AddRegisterMemoryWithRegisterToEither) => todo!(),
+            (Op::Add, Instruction::AddImmediateToRegisterMemory) => todo!(),
+            (Op::Add, Instruction::AddImmediateToAccumulator) => todo!(),
+            (Op::Sub, Instruction::SubRegisterMemoryAndRegisterToEither) => todo!(),
+            (Op::Sub, Instruction::SubImmediateFromRegisterMemory) => todo!(),
+            (Op::Sub, Instruction::SubImmediateFromAccumulator) => todo!(),
+            (Op::Cmp, Instruction::CmpRegisterMemoryAndRegister) => todo!(),
+            (Op::Cmp, Instruction::CmpImmediateWithRegisterMemory) => todo!(),
+            (Op::Cmp, Instruction::CmpImmediateWithAccumulator) => todo!(),
+            (_, _) => (),
         }
     }
 
