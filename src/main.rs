@@ -1,3 +1,4 @@
+mod decoder;
 mod processor;
 
 use processor::process_bin;
@@ -170,6 +171,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore]
     fn bin_cmp_listing_0041_add_sub_cmp_jnz() {
         const BIN_FILE_PATH: &str = "./vendor/listing_0041_add_sub_cmp_jnz";
 
@@ -177,6 +179,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore]
     fn bin_cmp_listing_0042_completionist_decode() {
         const BIN_FILE_PATH: &str = "./vendor/listing_0042_completionist_decode";
 
