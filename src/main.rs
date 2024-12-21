@@ -184,4 +184,26 @@ mod tests {
 
         compare_bin(BIN_FILE_PATH)
     }
+
+    #[test]
+    fn bin_cmp_listing_0043_immediate_movs() {
+        const BIN_FILE_PATH: &str = "./vendor/listing_0043_immediate_movs";
+
+        compare_bin(BIN_FILE_PATH)
+    }
+
+    #[test]
+    fn bin_cmp_listing_0044_register_movs() {
+        const BIN_FILE_PATH: &str = "./vendor/listing_0044_register_movs";
+
+        compare_bin(BIN_FILE_PATH)
+    }
+
+    #[test]
+    #[ignore]
+    fn bin_cmp_listing_0045_challege_register_movs() {
+        const BIN_FILE_PATH: &str = "./vendor/listing_0045_challege_register_movs";
+
+        compare_bin(BIN_FILE_PATH)
+    }
 }
