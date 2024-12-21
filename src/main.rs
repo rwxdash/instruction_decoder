@@ -171,7 +171,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore]
     fn bin_cmp_listing_0041_add_sub_cmp_jnz() {
         const BIN_FILE_PATH: &str = "./vendor/listing_0041_add_sub_cmp_jnz";
 
